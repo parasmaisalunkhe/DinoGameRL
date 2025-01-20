@@ -37,10 +37,7 @@ def capture_screenshot(window_id, window_name):
     geometry = get_window_geometry(window_id)
     if geometry:
         x, y, width, height = geometry
-        # Use scrot to capture the screenshot
         os.system(f"scrot -u -o screenshot.png -e 'mv $f screenshot.png'")
-
-        # Open the screenshot with Pillow and crop to the desired window
         with Image.open("screenshot.png") as img:
             img = img.crop(((100, 90, 100+600, 90+150)))
             return img
