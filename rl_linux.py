@@ -1,13 +1,7 @@
-
-
-from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import PPO
-# from sb3_contrib import TQC
 import os
 import pyautogui
 import time
-# import pygetwindow as gw
-
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -16,17 +10,13 @@ from PIL import Image
 
 def is_template_in_image(npimage, template_path, threshold: float = 0.5):
     gray_image = cv2.cvtColor(npimage, cv2.IMREAD_GRAYSCALE)
-    # cv2.imshow("test", gray_image)
-    # cv2.waitKey(0)
     template = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
     gray_image = cv2.cvtColor(gray_image, cv2.COLOR_RGB2GRAY)
-    # template = cv2.cvtColor(template, cv2.COLOR  _RGB2GRAY)
     res = cv2.matchTemplate(gray_image, template, cv2.TM_CCOEFF_NORMED)
     match_found = np.any(res >= threshold)
     return match_found
 
 def get_window_id(window_name):
-    # Use xdotool to get the window ID
     window_id = os.popen(f"xdotool search --name '{window_name}'").read().strip()
     return window_id if window_id else None
 
@@ -49,11 +39,10 @@ def capture_screenshot(window_id, window_name):
         x, y, width, height = geometry
         # Use scrot to capture the screenshot
         os.system(f"scrot -u -o screenshot.png -e 'mv $f screenshot.png'")
-        print("Screenshot captured")
 
         # Open the screenshot with Pillow and crop to the desired window
         with Image.open("screenshot.png") as img:
-            img = img.crop((x, y, x + width, y + height))
+            img = img.crop(((100, 90, 100+600, 90+150)))
             return img
     else:
         print(f"Failed to capture screenshot for window '{window_name}'")
@@ -69,24 +58,22 @@ class DinoGameEnv(gym.Env):
         super().__init__()
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(low=0, high=255, shape=(150, 600, 1), dtype=np.uint8)
-        dino_window = gw.getWindowsWithTitle("Dino Game")[0]
-        self.x, self.y, self.width, self.height = dino_window.left+100, dino_window.top+80, dino_window.width-200, dino_window.height-450
+        self.window_name = "Dino Game"
+        self.window_id = get_window_id(self.window_name)
         self.start_time = time.perf_counter()
         pyautogui.press('space')
     def reset(self, seed=None, options=None):
         pyautogui.press('space')
-        newobs = np.array(cv2.cvtColor(np.array(pyautogui.screenshot(region=(self.x, self.y, self.width, self.height))), cv2.COLOR_RGB2GRAY)).reshape((150, 600, 1))
+        newobs = np.array(cv2.cvtColor(np.array(capture_screenshot(self.window_id, self.window_name)), cv2.COLOR_RGB2GRAY)).reshape((150, 600, 1))
         return newobs, {}
 
     def step(self, action):
-        # Process the action and generate a new observation
-        # Here, we simply return a random binary output based on the action
         done = False
         if action == 0:
             pyautogui.press('up')
         if action == 1:
             pyautogui.press('down')
-        newobs = np.array(cv2.cvtColor(np.array(pyautogui.screenshot(region=(self.x, self.y, self.width, self.height))), cv2.COLOR_RGB2GRAY)).reshape((150, 600, 1))
+        newobs = np.array(cv2.cvtColor(np.array(capture_screenshot(self.window_id, self.window_name)), cv2.COLOR_RGB2GRAY)).reshape((150, 600, 1))
         self.reward = (time.perf_counter() - self.start_time) * 1000
         if is_template_in_image(newobs, "images//resetLight.png") or is_template_in_image(newobs, "images//resetDark.png"):
             done = True
@@ -104,6 +91,4 @@ def main():
     model.learn(total_timesteps=1000000)
     model.save("ppo_dino")
 if __name__ == "__main__":
-    # check_env(DinoGameEnv())  
     main()
-# webview.start(func=main)

@@ -30,7 +30,7 @@ def capture_screenshot(window_id, window_name):
 
         # Open the screenshot with Pillow and crop to the desired window
         with Image.open("screenshot.png") as img:
-            img = img.crop((x, y, x + width, y + height))
+            img = img.crop((92, 96, 96+600, 92+150))
             return img
     else:
         print(f"Failed to capture screenshot for window '{window_name}'")
